@@ -202,7 +202,7 @@ LAB_80027028:  sltu    t7,t7,s0
 LAB_8002702c:  bnez    t7,LAB_80026ee4
 LAB_80027030:  move    s1,a1
 LAB_80027034:  move    a0,v0
-LAB_80027038:  jal     my_memcpy
+LAB_80027038:  jal     memcpy
 LAB_8002703c:  move    a1,v1
 LAB_80027040:  b       LAB_80026ef0
 LAB_80027044:  subu    v0,s0,s1

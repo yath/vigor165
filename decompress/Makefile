@@ -9,7 +9,7 @@ OUTFILE ?= v165_410_STD_decompressed.bin
 %.o: %.S
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-main: main.c memcpy.o decompress.o
+main: main.c decompress.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 .PHONY: run
@@ -18,4 +18,4 @@ run: main
 
 .PHONY: clean
 clean:
-	rm -f main memcpy.o decompress.o
+	rm -f main decompress.o

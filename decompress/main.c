@@ -10,7 +10,6 @@
 #include <stdint.h>
 #include <arpa/inet.h>
 
-extern int my_memcpy(char *dst, char *src, int len);
 extern int decompress(char *src, char *dst, int srclen, int dstlen, void *wrkmem);
 
 #define print(fmt, args...) do { fprintf(stderr, fmt "\n", ##args); fflush(stderr); } while(0)
