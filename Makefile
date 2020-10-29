@@ -1,7 +1,7 @@
 CC := mips-linux-gnu-gcc
 QEMU := qemu-mips-static
 CFLAGS := -ggdb
-MIPS_LD := /usr/mips-linux-gnu/lib
+MIPS_LIB_PREFIX := /usr/mips-linux-gnu
 
 INFILE ?= v165_410_STD.all
 OUTFILE ?= v165_410_STD_decompressed.bin
@@ -14,7 +14,7 @@ main: main.c memcpy.o decompress.o
 
 .PHONY: run
 run: main
-	LD_LIBRARY_PATH=$(MIPS_LD) $(QEMU) $(MIPS_LD)/ld.so.1 ./main $(INFILE) > $(OUTFILE)
+	$(QEMU) -L $(MIPS_LIB_PREFIX) ./main $(INFILE) > $(OUTFILE)
 
 .PHONY: clean
 clean:
