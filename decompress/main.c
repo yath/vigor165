@@ -1,14 +1,15 @@
 #define _GNU_SOURCE
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdint.h>
 #include <arpa/inet.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 extern int decompress(char *src, char *dst, int srclen, int dstlen, void *wrkmem);
 
@@ -45,6 +46,17 @@ char *readall(const char *filename, int *size) {
     return buf;
 }
 
+int open_rw(const char *prefix, int offset) {
+    char buf[PATH_MAX];
+    if (snprintf(buf, sizeof(buf), "%s%X", prefix, offset) >= sizeof(buf))
+        fail("Path name for offset 0x%x exceeds PATH_MAX (= %d)", offset, PATH_MAX);
+
+    int fd = open(buf, O_RDWR|O_CREAT, 0644);
+    if (fd < 0)
+        pfail("Can't open %s for writing", buf);
+    return fd;
+}
+
 uint32_t uint_at(const unsigned char *buf) {
     return (buf[3] << 24) |
            (buf[2] << 16) |
@@ -53,11 +65,13 @@ uint32_t uint_at(const unsigned char *buf) {
 }
 
 int main(int argc, char **argv) {
-    if (argc < 2)
-        fail("Usage: %s <filename>", argv[0]);
+    if (argc < 3)
+        fail("Usage: %s <input filename> <output file prefix>", argv[0]);
 
     int size;
     char *in = readall(argv[1], &size);
+
+    const char *outpfx = argv[2];
 
     print("read %d bytes", size);
 
@@ -68,6 +82,7 @@ int main(int argc, char **argv) {
     p += sizeof(magic);
 
     char buf[0x100000];
+    int outfd = -1;
     while (p < in+size) {
         uint32_t cs = uint_at(p);
         print("chunk size: 0x%x", cs);
@@ -75,6 +90,11 @@ int main(int argc, char **argv) {
         int len = decompress(p, buf, cs, sizeof(buf), 0);
         if (len < 0) {
             print("Unable to decompress data at offset 0x%x, ret = %d", p-in, len);
+
+            if (outfd != -1 && close(outfd) < 0)
+                pfail("Unable to close output file");
+            outfd = -1;
+
             p = memmem(p, size-(p-in), magic, sizeof(magic));
             if (!p) {
                 print("No further header found, exiting");
@@ -88,10 +108,13 @@ int main(int argc, char **argv) {
 
         print("Inflated %d bytes at 0x%x to %d bytes", cs, p-in, len);
 
+        if (outfd == -1)
+            outfd = open_rw(outpfx, p-in-sizeof(uint32_t));
+
         do {
-            int wlen = write(STDOUT_FILENO, buf, len);
+            int wlen = write(outfd, buf, len);
             if (wlen < 0)
-                pfail("Unable to write %d bytes to stdout", len);
+                pfail("Unable to write %d bytes", len);
             len -= wlen;
         } while (len > 0);
 
